@@ -430,10 +430,10 @@ async function enqueueAppDelete(key){
     return appWriteChain;
 }
 function appGet(key){return appCache.has(String(key))?appCache.get(String(key)):null}
-async function appSet(key,value){
+function appSet(key,value){
     const k=String(key),v=String(value);
-    await enqueueAppPut(k,v);
     appCache.set(k,v);
+    return enqueueAppPut(k,v);
 }
 function appDelete(key){
     const k=String(key);
@@ -522,12 +522,6 @@ function loadConfig(){
     config.repo=String(saved.repo||'').trim();
     config.file=String(saved.file||'').trim()||'blog_data.json';
     config.token=String(appGet(TOKEN_KEY)||'').trim();
-
-    if(cfgOwner)cfgOwner.value=config.owner;
-    if(cfgRepo)cfgRepo.value=config.repo;
-    if(cfgFile)cfgFile.value=config.file;
-    if(cfgToken)cfgToken.value=config.token;
-    if(rememberToken)rememberToken.checked=Boolean(config.token);
 }
 async function persistConfig(){
     const jobs=[appSet(CONFIG_KEY,JSON.stringify({owner:config.owner,repo:config.repo,file:config.file}))];
@@ -737,13 +731,6 @@ async function loadPublicView(){
         return true;
     }catch(error){
         console.error(error);
-        if(error instanceof SyntaxError){
-            showToast('blog_data.json JSON 格式错误','error');
-        }else if(error.status===404){
-            showToast('找不到 blog_data.json 文件','error');
-        }else{
-            showToast(`公开数据加载失败：${error.message||error}`,'error');
-        }
         entries=loadPublicCache();
         publicLoaded=entries.length>0;
         render();
@@ -1136,11 +1123,6 @@ async function submitConfig(e){
     configSaveBtn.disabled=true;
     try{
         await persistConfig();
-
-        if(rememberToken.checked && appGet(TOKEN_KEY)!==config.token){
-            throw new Error('Token 本地保存失败');
-        }
-
         if(old&&old!==target()){
             meta={target:'',fingerprint:null,sha:null,lastSyncAt:null};
             await saveMeta();
