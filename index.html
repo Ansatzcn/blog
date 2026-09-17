@@ -714,7 +714,19 @@ async function loadPublicView(){
     setStatus('syncing','加载公开内容…');
     lastSyncTime.textContent='公开浏览 · 编辑需 Token';
     try{
-        const response=await fetch(publicDataUrl(),{method:'GET',cache:'no-store',headers:{Accept:'application/json'}});
+        const controller=new AbortController();
+        const timeoutId=setTimeout(()=>controller.abort(),10000);
+        let response;
+        try{
+            response=await fetch(publicDataUrl(),{
+                method:'GET',
+                cache:'no-store',
+                headers:{Accept:'application/json'},
+                signal:controller.signal
+            });
+        }finally{
+            clearTimeout(timeoutId);
+        }
         const raw=await response.text();
         if(!response.ok){
             const error=new Error(`公开数据加载失败：HTTP ${response.status}`);
